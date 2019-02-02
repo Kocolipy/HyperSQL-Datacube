@@ -172,6 +172,7 @@ public class Expression implements Cloneable {
 
     // data type
     protected Type dataType;
+    protected int groupingType;
 
     //
     int queryTableColumnIndex = -1;    // >= 0 when it is used for order by
@@ -722,6 +723,16 @@ public class Expression implements Cloneable {
         }
 
         return this;
+    }
+
+    void replaceCaseWhenExpressions(OrderedHashSet expressions,
+                                    int resultRangePosition){
+        if (nodes.length == 0){
+            return;
+        }
+        for (int i=0; i<nodes.length; i++){
+            nodes[i] = nodes[i].replaceExpressions(expressions, resultRangePosition);
+        }
     }
 
     void replaceRangeVariables(RangeVariable[] ranges,
@@ -2125,6 +2136,11 @@ public class Expression implements Cloneable {
 
     public SetFunction updateAggregatingValue(Session session,
             SetFunction currValue) {
+        throw Error.runtimeError(ErrorCode.U_S0500, "Expression");
+    }
+
+    public SetFunction updateAggregatingValue(Session session,
+                                              SetFunction currValue, SetFunction value) {
         throw Error.runtimeError(ErrorCode.U_S0500, "Expression");
     }
 

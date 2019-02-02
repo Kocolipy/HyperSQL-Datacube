@@ -87,6 +87,9 @@ public class SessionContext {
     // range variable data
     RangeIterator[] rangeIterators;
 
+    // Data-Cube data
+    GroupSet groupSet;
+
     // session tables
     HashMappedList sessionTables;
     HashMappedList popSessionTables;
@@ -324,6 +327,10 @@ public class SessionContext {
         rangeIterators[position] = null;
     }
 
+    public void setGroupSet(GroupSet set){
+        groupSet = set;
+    }
+    
     /**
      * For cascade operations
      */

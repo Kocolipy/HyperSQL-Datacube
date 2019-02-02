@@ -92,6 +92,7 @@ public class ExpressionColumn extends Expression {
     String        tableName;
     String        columnName;
     RangeVariable rangeVariable;
+    Expression    grouping;
 
     //
     NumberSequence sequence;
@@ -378,6 +379,7 @@ public class ExpressionColumn extends Expression {
             case OpTypes.DIAGNOSTICS_VARIABLE :
                 break;
 
+            case OpTypes.GROUPING :
             case OpTypes.COALESCE :
                 for (int i = 0; i < nodes.length; i++) {
                     nodes[i].resolveColumnReferences(session, rangeGroup,
@@ -647,6 +649,12 @@ public class ExpressionColumn extends Expression {
 
         switch (opType) {
 
+            case OpTypes.GROUPING :
+                if (session.sessionContext.groupSet == null){
+                    return 0;
+                }
+                return session.sessionContext.groupSet.isGrouped(this);
+
             case OpTypes.DEFAULT :
                 return null;
 
@@ -724,34 +732,34 @@ public class ExpressionColumn extends Expression {
 
         switch (opType) {
 
-            case OpTypes.DEFAULT :
+            case OpTypes.DEFAULT:
                 return Tokens.T_DEFAULT;
 
-            case OpTypes.DYNAMIC_PARAM :
+            case OpTypes.DYNAMIC_PARAM:
                 return Tokens.T_QUESTION;
 
-            case OpTypes.ASTERISK :
+            case OpTypes.ASTERISK:
                 return "*";
 
-            case OpTypes.COALESCE :
+            case OpTypes.COALESCE:
                 if (alias != null) {
                     return alias.getStatementName();
                 } else {
                     return Tokens.T_COALESCE;
                 }
-            case OpTypes.DIAGNOSTICS_VARIABLE :
-            case OpTypes.VARIABLE :
-            case OpTypes.PARAMETER :
+            case OpTypes.DIAGNOSTICS_VARIABLE:
+            case OpTypes.VARIABLE:
+            case OpTypes.PARAMETER:
                 return column.getName().statementName;
 
-            case OpTypes.ROWNUM : {
+            case OpTypes.ROWNUM: {
                 StringBuffer sb = new StringBuffer(Tokens.T_ROWNUM);
 
                 sb.append('(').append(')');
 
                 return sb.toString();
             }
-            case OpTypes.COLUMN : {
+            case OpTypes.COLUMN: {
                 if (column == null) {
                     if (alias != null) {
                         return alias.getStatementName();
@@ -782,7 +790,7 @@ public class ExpressionColumn extends Expression {
                     return sb.toString();
                 }
             }
-            case OpTypes.MULTICOLUMN : {
+            case OpTypes.MULTICOLUMN: {
                 if (nodes.length == 0) {
                     return "*";
                 }
@@ -801,6 +809,23 @@ public class ExpressionColumn extends Expression {
                     sb.append(s);
                 }
 
+                return sb.toString();
+            }
+            case OpTypes.GROUPING: {
+                StringBuffer sb = new StringBuffer();
+                sb.append("GROUPING(");
+
+                for (int i = 0; i < nodes.length; i++) {
+                    Expression e = nodes[i];
+
+                    if (i > 0) {
+                        sb.append(',');
+                    }
+
+                    String s = e.getSQL();
+                    sb.append(s);
+                }
+                sb.append(")");
                 return sb.toString();
             }
             default :

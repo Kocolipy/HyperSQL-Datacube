@@ -44,6 +44,8 @@ public interface SetFunction {
 
     public void add(Session session, Object item);
 
+    public void addGroup(Session session, SetFunction item);
+
     public Object getValue(Session session);
 
     public void reset();
