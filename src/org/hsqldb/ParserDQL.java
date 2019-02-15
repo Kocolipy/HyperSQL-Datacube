@@ -2937,7 +2937,7 @@ public class ParserDQL extends ParserBase {
                 ec.dataType = new NumberType(Types.INTEGER, 1, 1);
 
                 if (token.tokenType == Tokens.SETS){
-                    throw unsupportedFeature("No function matches the given name, " + token.tokenString);
+                    throw unexpectedToken();
                 }
                 readThis(Tokens.OPENBRACKET);
 
@@ -2954,12 +2954,6 @@ public class ParserDQL extends ParserBase {
                 return ec;
             }
             default :
-                switch (token.tokenType){
-                    case(Tokens.CUBE):
-                    case(Tokens.ROLLUP):
-                    case(Tokens.GROUPING):
-                        throw unsupportedFeature("No function matches the given name, " + token.tokenString);
-                }
                 if (isCoreReservedKey()) {
                     throw unexpectedToken();
                 }

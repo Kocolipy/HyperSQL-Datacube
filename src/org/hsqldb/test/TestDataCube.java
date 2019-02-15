@@ -279,7 +279,7 @@ public class TestDataCube extends TestCase {
                 "FROM REVENUE \n" +
                 "GROUP BY (CUBE(CHANNEL))\n";
         Object[][] expected = new Object[][]{};
-        compareResults(sql, expected, "0A501");
+        compareResults(sql, expected, "42581");
     }
 
     //------------------------------------------------------------
@@ -374,7 +374,7 @@ public class TestDataCube extends TestCase {
                 "FROM REVENUE \n" +
                 "GROUP BY (ROLLUP(CHANNEL))\n";
         Object[][] expected = new Object[][]{};
-        compareResults(sql, expected, "0A501");
+        compareResults(sql, expected, "42581");
     }
 
     //------------------------------------------------------------
@@ -493,7 +493,7 @@ public class TestDataCube extends TestCase {
                 "FROM REVENUE \n" +
                 "GROUP BY (GROUPING SETS(COUNTRY))\n";
         Object[][] expected = new Object[][]{};
-        compareResults(sql, expected, "0A501");
+        compareResults(sql, expected, "42581");
     }
 
 
@@ -1492,7 +1492,7 @@ public class TestDataCube extends TestCase {
                 "FROM REVENUE \n" +
                 "GROUP BY CUBE(CHANNEL, ROLLUP(YEAR));\n";
         Object[][] expected = new Object[][]{};
-        compareResults(sql, expected, "0A501");
+        compareResults(sql, expected, "42581");
     }
 
     /**
@@ -1506,7 +1506,7 @@ public class TestDataCube extends TestCase {
                 "FROM REVENUE \n" +
                 "GROUP BY CUBE(CHANNEL, CUBE(YEAR));\n";
         Object[][] expected = new Object[][]{};
-        compareResults(sql, expected, "0A501");
+        compareResults(sql, expected, "42581");
     }
 
     /**
@@ -1520,7 +1520,7 @@ public class TestDataCube extends TestCase {
                 "FROM REVENUE \n" +
                 "GROUP BY CUBE(GROUPING SETS(CHANNEL), YEAR);\n";
         Object[][] expected = new Object[][]{};
-        compareResults(sql, expected, "0A501");
+        compareResults(sql, expected, "42581");
     }
     /**
      * Tests an invalid <b>GROUP BY</b> clause that contains
@@ -1533,7 +1533,7 @@ public class TestDataCube extends TestCase {
                 "FROM REVENUE \n" +
                 "GROUP BY ROLLUP(CHANNEL, ROLLUP(YEAR));\n";
         Object[][] expected = new Object[][]{};
-        compareResults(sql, expected, "0A501");
+        compareResults(sql, expected, "42581");
     }
 
     /**
@@ -1547,7 +1547,7 @@ public class TestDataCube extends TestCase {
                 "FROM REVENUE \n" +
                 "GROUP BY ROLLUP(CUBE(CHANNEL), YEAR);\n";
         Object[][] expected = new Object[][]{};
-        compareResults(sql, expected, "0A501");
+        compareResults(sql, expected, "42581");
     }
 
     /**
@@ -1561,7 +1561,7 @@ public class TestDataCube extends TestCase {
                 "FROM REVENUE \n" +
                 "GROUP BY ROLLUP(CHANNEL, GROUPING SETS(YEAR));\n";
         Object[][] expected = new Object[][]{};
-        compareResults(sql, expected, "0A501");
+        compareResults(sql, expected, "42581");
     }
     //------------------------------------------------------------
     // WHERE CLAUSE TEST
