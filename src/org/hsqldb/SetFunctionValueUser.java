@@ -1,4 +1,4 @@
-/* Copyright (c) 2001-2018, The HSQL Development Group
+/* Copyright (c) 2001-2019, The HSQL Development Group
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,7 +34,7 @@ package org.hsqldb;
 /**
  * Value for user-defined aggregate functions.
  * @author Fred Toussi (fredt@users dot sourceforge.net)
- * @version 2.4.1
+ * @version 2.5.0
  * @since 2.4.1
  *
  */
@@ -42,13 +42,13 @@ public class SetFunctionValueUser implements SetFunction {
 
     Object[] list = new Object[3];
 
-    public void add(Session session, Object itemLeft, Object itemRight) {}
+    public void add(Object itemLeft, Object itemRight) {}
 
-    public void add(Session session, Object item) {}
+    public void add(Object item) {}
 
-    public void addGroup(Session session, SetFunction item){}
+    public void addGroup(SetFunction item){}
 
-    public Object getValue(Session session) {
+    public Object getValue() {
         return list;
     }
 

@@ -1,4 +1,4 @@
-/* Copyright (c) 2001-2015, The HSQL Development Group
+/* Copyright (c) 2001-2019, The HSQL Development Group
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,7 +34,7 @@ package org.hsqldb.lib.tar;
 import org.hsqldb.lib.ValidatingResourceBundle;
 import org.hsqldb.lib.RefCapableRBInterface;
 
-/* $Id: RB.java 5437 2015-03-09 23:45:20Z fredt $ */
+/* $Id: RB.java 5962 2019-04-03 11:26:35Z fredt $ */
 
 /**
  * Resource Bundle for Tar classes

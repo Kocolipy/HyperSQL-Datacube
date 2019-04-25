@@ -37,8 +37,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PipedReader;
 import java.io.PipedWriter;
-import java.net.URL;
-import java.net.MalformedURLException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.HashMap;
@@ -47,7 +45,7 @@ import org.hsqldb.lib.FrameworkLogger;
 import org.hsqldb.lib.RCData;
 import org.hsqldb.cmdline.sqltool.Token;
 
-/* $Id: SqlTool.java 5876 2018-12-24 19:36:24Z unsaved $ */
+/* $Id: SqlTool.java 5736 2017-04-02 10:13:36Z fredt $ */
 
 /**
  * A command-line JDBC SQL tool supporting both interactive and
@@ -70,7 +68,7 @@ import org.hsqldb.cmdline.sqltool.Token;
  * @see #objectMain(String[])
  * @see SqlFile
  * @see org.hsqldb.sample.SqlFileEmbedder
- * @version $Revision: 5876 $, $Date: 2018-12-24 19:36:24 +0000 (Mon, 24 Dec 2018) $
+ * @version $Revision: 5736 $, $Date: 2017-04-02 11:13:36 +0100 (Sun, 02 Apr 2017) $
  * @author Blaine Simpson (blaine dot simpson at admc dot com)
  */
 public class SqlTool {
@@ -79,7 +77,7 @@ public class SqlTool {
     public static final String DEFAULT_RCFILE =
         System.getProperty("user.home") + "/sqltool.rc";
     // N.b. the following are static!
-    private static final String revString = "$Revision: 5876 $";
+    private static final String revString = "$Revision: 5736 $";
     private static final int revStringLength = revString.length();
     private static final String  revnum =
             (revStringLength - " $".length() > "$Revision: ".length())
@@ -156,7 +154,7 @@ public class SqlTool {
      * @param username The user the password is for
      * @return The password the user entered
      */
-    private static String promptForPassword(final String username)
+    private static String promptForPassword(String username)
     throws PrivateException {
 
         BufferedReader console;
@@ -197,9 +195,9 @@ public class SqlTool {
      * @param lowerCaseKeys Set to <code>true</code> if the map keys should be
      *        converted to lower case
      */
-    private static void varParser(final String inVarString,
-                                  final Map<String, String> varMap,
-                                  final boolean lowerCaseKeys)
+    private static void varParser(String inVarString,
+                                  Map<String, String> varMap,
+                                  boolean lowerCaseKeys)
                                   throws PrivateException {
 
         int       equals;
@@ -260,7 +258,7 @@ public class SqlTool {
      * @param args arguments
      * @see #objectMain(String[])
      */
-    public static void main(final String[] args) {
+    public static void main(String[] args) {
         try {
             SqlTool.objectMain(args);
         } catch (SqlToolException fr) {
@@ -283,7 +281,7 @@ public class SqlTool {
      * @throws SqlToolException  Upon any fatal error, with useful
      *                          reason as the exception's message.
      */
-    public static void objectMain(final String[] arg) throws SqlToolException {
+    public static void objectMain(String[] arg) throws SqlToolException {
         logger.finer("Invoking SqlTool");
 
         /*
@@ -297,25 +295,22 @@ public class SqlTool {
         String  driver           = null;
         String  targetDb         = null;
         boolean debug            = false;
-        URL[]   scriptFiles      = null;
+        File[]  scriptFiles      = null;
         int     i                = -1;
         boolean listMode         = false;
         boolean interactive      = false;
         boolean noinput          = false;
         boolean noautoFile       = false;
         boolean autoCommit       = false;
-        boolean rcParamsOverride = false;
         Boolean coeOverride      = null;
         Boolean stdinputOverride = null;
         String  rcParams         = null;
         String  rcUrl            = null;
         String  rcUsername       = null;
-        String  rcUser           = null;
         String  rcPassword       = null;
         String  rcCharset        = null;
         String  rcTruststore     = null;
         String  rcTransIso       = null;
-        String  rcDriver         = null;
         Map<String, String> rcFields = null;
         String  parameter;
         SqlFile[] sqlFiles       = null;
@@ -485,24 +480,6 @@ public class SqlTool {
                                 SqltoolRB.SqlTool_params_redundant.getString());
                     }
                     rcParams = arg[i].substring("--inlinerc=".length());
-                } else if (parameter.equals("overriderc")) {
-                    if (++i == arg.length) {
-                        throw bcl;
-                    }
-                    if (rcParams != null) {
-                        throw new SqlToolException(SYNTAXERR_EXITVAL,
-                                SqltoolRB.SqlTool_params_redundant.getString());
-                    }
-
-                    rcParamsOverride = true;
-                    rcParams = arg[i];
-                } else if (parameter.startsWith("overriderc=")) {
-                    if (rcParams != null) {
-                        throw new SqlToolException(SYNTAXERR_EXITVAL,
-                                SqltoolRB.SqlTool_params_redundant.getString());
-                    }
-                    rcParamsOverride = true;
-                    rcParams = arg[i].substring("--overriderc=".length());
                 } else {
                     throw bcl;
                 }
@@ -527,8 +504,7 @@ public class SqlTool {
                 break;
             }
 
-            if (!listMode && (rcParams == null || rcParamsOverride)
-              && ++i != arg.length) {
+            if (!listMode && rcParams == null && ++i != arg.length) {
                 // If an inline RC file was specified, don't look for targetDb
                 targetDb = arg[i];
                 if (targetDb.equals("-")) targetDb = null;
@@ -574,7 +550,7 @@ public class SqlTool {
             } else if (arg.length > i + 1) {
 
                 // I.e., if there are any SQL files specified.
-                scriptFiles = new URL[arg.length - i - 1
+                scriptFiles = new File[arg.length - i - 1
                         + ((stdinputOverride == null
                                 || !stdinputOverride.booleanValue()) ? 0 : 1)];
 
@@ -583,15 +559,8 @@ public class SqlTool {
                                        + scriptFiles.length + " elements");
                 }
 
-                while (i + 1 < arg.length) try {
-                    scriptFiles[scriptIndex] = 
-                      SqlFile.URL_WITH_PROTO_RE.matcher(arg[++i]).matches() ?
-                        new URL(arg[i]) :
-                        new URL("file", null, arg[i]);
-                } catch (MalformedURLException mue) {
-                    // TODO: Define a new ResourceBundle message!
-                    throw new RuntimeException(
-                      "Invalid SQL file URL " + arg[i]);
+                while (i + 1 < arg.length) {
+                    scriptFiles[scriptIndex++] = new File(arg[++i]);
                 }
 
                 if (stdinputOverride != null
@@ -608,7 +577,55 @@ public class SqlTool {
 
         RCData conData = null;
 
-        if (listMode || targetDb != null) {
+        // Use the inline RC file if it was specified
+        if (rcParams != null) {
+            rcFields = new HashMap<String, String>();
+
+            try {
+                varParser(rcParams, rcFields, true);
+            } catch (PrivateException e) {
+                throw new SqlToolException(SYNTAXERR_EXITVAL, e.getMessage());
+            }
+
+            rcUrl        = rcFields.remove("url");
+            rcUsername   = rcFields.remove("user");
+            rcCharset    = rcFields.remove("charset");
+            rcTruststore = rcFields.remove("truststore");
+            rcPassword   = rcFields.remove("password");
+            rcTransIso   = rcFields.remove("transiso");
+
+            // Don't ask for password if what we have already is invalid!
+            if (rcUrl == null || rcUrl.length() < 1)
+                throw new SqlToolException(RCERR_EXITVAL,
+                        SqltoolRB.rcdata_inlineurl_missing.getString());
+            // We now allow both null and "" user name, but we require password
+            // if the user name != null.
+            if (rcPassword != null && rcPassword.length() > 0)
+                throw new SqlToolException(RCERR_EXITVAL,
+                        SqltoolRB.rcdata_password_visible.getString());
+            if (rcFields.size() > 0) {
+                throw new SqlToolException(INPUTERR_EXITVAL,
+                        SqltoolRB.rcdata_inline_extravars.getString(
+                        rcFields.keySet().toString()));
+            }
+
+            if (rcUsername != null && rcPassword == null) try {
+                rcPassword   = promptForPassword(rcUsername);
+            } catch (PrivateException e) {
+                throw new SqlToolException(INPUTERR_EXITVAL,
+                        SqltoolRB.password_readfail.getString(e.getMessage()));
+            }
+            try {
+                conData = new RCData(CMDLINE_ID, rcUrl, rcUsername,
+                                     rcPassword, driver, rcCharset,
+                                     rcTruststore, null, rcTransIso);
+            } catch (RuntimeException re) {
+                throw re;  // Unrecoverable
+            } catch (Exception e) {
+                throw new SqlToolException(RCERR_EXITVAL,
+                        SqltoolRB.rcdata_genfromvalues_fail.getString());
+            }
+        } else if (listMode || targetDb != null) {
             try {
                 conData = new RCData(new File((rcFile == null)
                                               ? DEFAULT_RCFILE
@@ -619,84 +636,6 @@ public class SqlTool {
                 throw new SqlToolException(RCERR_EXITVAL,
                         SqltoolRB.conndata_retrieval_fail.getString(
                         targetDb, e.getMessage()));
-            }
-        }
-        // Use the inline RC file if it was specified
-        if (rcParams != null) {
-            if (rcParamsOverride && conData == null)
-                throw new RuntimeException(
-                  "rcParams override but no urlid specified");
-            if (!rcParamsOverride && conData != null)
-                throw new RuntimeException(
-                  "inlineRc override but urlid was specified");
-            rcFields = new HashMap<String, String>();
-
-            try {
-                varParser(rcParams, rcFields, true);
-            } catch (PrivateException e) {
-                throw new SqlToolException(SYNTAXERR_EXITVAL, e.getMessage());
-            }
-
-            rcUrl        = rcFields.remove("url");
-            rcUser       = rcFields.remove("user");  // Legacy
-            rcUsername   = rcFields.remove("username");
-            rcCharset    = rcFields.remove("charset");
-            rcTruststore = rcFields.remove("truststore");
-            rcPassword   = rcFields.remove("password");
-            rcTransIso   = rcFields.remove("transiso");
-            rcDriver     = rcFields.remove("driver");
-            if (rcFields.size() > 0) {
-                throw new SqlToolException(INPUTERR_EXITVAL,
-                        SqltoolRB.rcdata_inline_extravars.getString(
-                        rcFields.keySet().toString()));
-            }
-            if (rcUser != null) {
-                if (rcUsername != null)
-                    throw new RuntimeException("RC params 'user' and "
-                     + "'username' both set.  Set only 'username'");
-                rcUsername = rcUser;
-                rcUser = null;
-            }
-
-            if (rcDriver != null && driver != null)
-                throw new SqlToolException(RCERR_EXITVAL,
-                        SqltoolRB.rcdata_driver_conflict.getString());
-            if (rcPassword != null && rcPassword.length() > 0)
-                throw new SqlToolException(RCERR_EXITVAL,
-                        SqltoolRB.rcdata_password_visible.getString());
-            if (conData == null) try {
-                conData = new RCData(CMDLINE_ID, rcUrl, rcUsername, rcPassword,
-                  (rcDriver == null ? driver : rcDriver), rcCharset,
-                  rcTruststore, null, rcTransIso);
-            } catch (RuntimeException re) {
-                throw re;  // Unrecoverable
-            } catch (Exception e) {
-                throw new SqlToolException(RCERR_EXITVAL,
-                        SqltoolRB.rcdata_genfromvalues_fail.getString(
-                        e.getMessage()));
-            } else {
-                // Override conData field values
-                if (rcUrl != null) conData.url = rcUrl;
-                if (rcUsername != null) conData.username = rcUsername;
-                if (rcCharset != null) conData.charset = rcCharset;
-                if (rcTruststore != null) conData.truststore = rcTruststore;
-                if (rcPassword != null) conData.password = rcPassword;
-                if (rcTransIso != null) conData.ti = rcTransIso;
-                if (rcDriver != null) conData.driver = rcDriver;
-            }
-
-            // Don't ask for password if what we have already is invalid!
-            if (conData.url == null || conData.url.length() < 1)
-                throw new SqlToolException(RCERR_EXITVAL,
-                        SqltoolRB.rcdata_inlineurl_missing.getString());
-
-            // We now allow both null and "" user name, but we require password
-            // if the user name != null.
-            if (conData.username != null && conData.password == null) try {
-                conData.password   = promptForPassword(conData.username);
-            } catch (PrivateException e) {
-                throw new SqlToolException(INPUTERR_EXITVAL,
-                        SqltoolRB.password_readfail.getString(e.getMessage()));
             }
         }
 
@@ -716,7 +655,7 @@ public class SqlTool {
 
         if (conData != null) try {
             conn = conData.getConnection(
-                null, System.getProperty("javax.net.ssl.trustStore"));
+                driver, System.getProperty("javax.net.ssl.trustStore"));
 
             conn.setAutoCommit(autoCommit);
 
@@ -737,8 +676,8 @@ public class SqlTool {
                     reportUser, e.getMessage()));
         }
 
-        URL[] emptyUrlArray      = {};
-        URL[] singleNullUrlArray = { null };
+        File[] emptyFileArray      = {};
+        File[] singleNullFileArray = { null };
         File   autoFile            = null;
 
         if (interactive && !noautoFile) {
@@ -754,8 +693,8 @@ public class SqlTool {
 
             // I.e., if no SQL files given on command-line.
             // Input file list is either nothing or {null} to read stdin.
-            scriptFiles = (noinput ? emptyUrlArray
-                                   : singleNullUrlArray);
+            scriptFiles = (noinput ? emptyFileArray
+                                   : singleNullFileArray);
         }
 
         int numFiles = scriptFiles.length;
@@ -778,16 +717,15 @@ public class SqlTool {
             int fileIndex = 0;
 
             if (autoFile != null) {
-                sqlFiles[fileIndex++] = new SqlFile(
-                  new URL("file", null, autoFile.getPath()), encoding);
+                sqlFiles[fileIndex++] = new SqlFile(autoFile, encoding);
             }
 
             if (tmpReader != null) {
-                sqlFiles[fileIndex++] = new SqlFile(tmpReader,
-                  "--sql", System.out, null, false, (URL) null);
+                sqlFiles[fileIndex++] = new SqlFile(
+                        tmpReader, "--sql", System.out, null, false, null);
             }
 
-            for (URL scriptFile : scriptFiles) {
+            for (File scriptFile : scriptFiles) {
                 if (interactiveFileIndex < 0 && interactive) {
                     interactiveFileIndex = fileIndex;
                 }

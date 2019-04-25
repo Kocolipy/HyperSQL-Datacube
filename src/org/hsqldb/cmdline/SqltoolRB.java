@@ -1,4 +1,4 @@
-/* Copyright (c) 2001-2011, The HSQL Development Group
+/* Copyright (c) 2001-2019, The HSQL Development Group
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,7 +34,7 @@ package org.hsqldb.cmdline;
 import org.hsqldb.lib.ValidatingResourceBundle;
 import org.hsqldb.lib.RefCapableRBInterface;
 
-/* $Id: SqltoolRB.java 5874 2018-12-24 17:00:19Z unsaved $ */
+/* $Id: SqltoolRB.java 5962 2019-04-03 11:26:35Z fredt $ */
 
 /**
  * Resource Bundle for SqlTool and associated classes.
@@ -44,6 +44,15 @@ import org.hsqldb.lib.RefCapableRBInterface;
  *  this class is clinitted.
  * The reason for this is to allow us developers to detect all such errors
  *  before end-users ever use this class.
+ * * IMPORTANT:  To add a new ResourceBundle element, add two new lines, one
+ * like <PRE>
+ *    public static final int NEWKEYID = keyCounter++;
+ * </PRE> and one line <PRE>
+ *      new Integer(KEY2), "key2",
+ * </PRE>
+ * Both should be inserted right after all of the other lines of the same type.
+ * NEWKEYID is obviously a new constant which you will use in calling code
+ * like SqltoolRB.NEWKEYID.
  */
 public enum SqltoolRB implements RefCapableRBInterface {
     SqlTool_syntax,
@@ -54,7 +63,7 @@ public enum SqltoolRB implements RefCapableRBInterface {
     sqltempfile_fail,
     rcdata_inlineurl_missing,
     rcdata_inline_extravars,
-    rcdata_driver_conflict,
+    rcdata_inlineusername_missing,
     rcdata_password_visible,
     password_readfail,
     connection_fail,
@@ -266,8 +275,7 @@ public enum SqltoolRB implements RefCapableRBInterface {
     bad_time_format,
     no_timestamp_format,
     else_without_if,
-    import_col_dup,
-    desturl_nowrite
+    import_col_dup
     ;
 
     private static ValidatingResourceBundle vrb =

@@ -92,6 +92,7 @@ public class TestDataCube extends TestCase {
         try {
             stmt.execute("DROP TABLE REVENUE IF EXISTS");
             stmt.execute("DROP TABLE LIABILITY IF EXISTS");
+            stmt.execute("DROP TABLE TEST IF EXISTS");
         } catch (Exception x) {}
 
         stmt.execute("CREATE TABLE REVENUE(CHANNEL VARCHAR(20), YEAR INTEGER, " +
@@ -125,6 +126,11 @@ public class TestDataCube extends TestCase {
         addLiabilitySource("INTERNET", 2009, "US", 4000);
         addLiabilitySource("INTERNET", 2010, "US", 5000);
 
+        stmt.execute("CREATE TABLE TEST(SEL INTEGER, NAME1 VARCHAR(3), NAME2 VARCHAR(3))");
+
+        stmt.execute("INSERT INTO TEST (SEL, NAME1, NAME2) VALUES (0, 'FOO', 'BAR')");
+        stmt.execute("INSERT INTO TEST (SEL, NAME1, NAME2) VALUES (1, 'BAZ', 'FOO')");
+        stmt.execute("INSERT INTO TEST (SEL, NAME1, NAME2) VALUES (1, 'FOO', 'QUX')");
     }
 
     protected void tearDown() throws Exception {
@@ -2255,6 +2261,90 @@ public class TestDataCube extends TestCase {
         Object[][] expected = new Object[][]{};
         compareResults(sql, expected, "0A501");
     }
+    //------------------------------------------------------------
+    // Functions in GROUP BY TEST
+    //------------------------------------------------------------
+    /**
+     * Tests the interaction of functions within the GROUP BY clause
+     * and datacube operators.
+     **/
+    public void testFunctionGroupBy() throws SQLException {
+        String sql = "SELECT CASE WHEN A.SEL=1 THEN A.NAME2 ELSE A.NAME1 END AS NAME,\n" +
+                "  COUNT(A.NAME1) AS COUNTER FROM TEST A \n" +
+                "  GROUP BY CUBE(CASE WHEN A.SEL=1 THEN A.NAME2 ELSE A.NAME1 END, A.SEL);";
+        Object[][] expected = new Object[][]{{
+                null, 3
+        }, {
+                "FOO", 1
+        }, {
+                "FOO", 1
+        }, {
+                "QUX", 1
+        }, {
+                "FOO", 2
+        }, {
+                "QUX", 1
+        }, {
+                null, 1
+        }, {
+                null, 2
+        }};
+        compareResults(sql, expected, "00000");
+    }
+    public void testFunctionGroupBy1() throws SQLException {
+        String sql = "SELECT CASE WHEN A.SEL=1 THEN A.NAME2 ELSE A.NAME1 END AS NAME,\n" +
+                "  COUNT(A.NAME1) AS COUNTER FROM TEST A \n" +
+                "  GROUP BY ROLLUP(CASE WHEN A.SEL=1 THEN A.NAME2 ELSE A.NAME1 END);";
+        Object[][] expected = new Object[][]{{
+                null, 3
+        }, {
+                "FOO", 2
+        }, {
+                "QUX", 1
+        }};
+        compareResults(sql, expected, "00000");
+    }
+
+    public void testFunctionGroupBy2() throws SQLException {
+        String sql = "SELECT CASE WHEN A.SEL=1 THEN A.NAME2 ELSE A.NAME1 END AS NAME,\n" +
+                "  COUNT(A.NAME1) AS COUNTER FROM TEST A \n" +
+                "  GROUP BY GROUPING SETS(CASE WHEN A.SEL=1 THEN A.NAME2 ELSE A.NAME1 END, A.SEL);";
+        Object[][] expected = new Object[][]{{
+                "FOO", 2
+        }, {
+                "QUX", 1
+        }, {
+                null, 1
+        }, {
+                null, 2
+        }};
+        compareResults(sql, expected, "00000");
+    }
+    public void testFunctionGroupBy3() throws SQLException {
+        String sql = "SELECT A.SEL, COALESCE(A.NAME1, A.NAME2) AS NAME,\n" +
+                "COUNT(A.SEL) AS COUNTER FROM TEST A \n" +
+                "GROUP BY CUBE(COALESCE(A.NAME1, A.NAME2), A.SEL)";
+        Object[][] expected = new Object[][]{{
+                null, null, 3
+        }, {
+                0, "FOO", 1
+        }, {
+                1, "BAZ", 1
+        }, {
+                1, "FOO", 1
+        }, {
+                null, "FOO", 2
+        }, {
+                null, "BAZ", 1
+        }, {
+                0, null, 1
+        }, {
+                1, null, 2
+        }};
+        compareResults(sql, expected, "00000");
+    }
+
+
     //------------------------------------------------------------
     // Complex Query TEST
     //------------------------------------------------------------

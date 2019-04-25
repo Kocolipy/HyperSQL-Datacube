@@ -1,4 +1,4 @@
-/* Copyright (c) 2001-2017, The HSQL Development Group
+/* Copyright (c) 2001-2019, The HSQL Development Group
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,12 +40,9 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
-import java.util.Set;
-import java.util.HashSet;
 import java.util.StringTokenizer;
-import java.util.regex.Pattern;
 
-/* $Id: RCData.java 5876 2018-12-24 19:36:24Z unsaved $ */
+/* $Id: RCData.java 5962 2019-04-03 11:26:35Z fredt $ */
 
 /**
  * Manages all the details we need to connect up to JDBC database(s),
@@ -85,22 +82,6 @@ public class RCData {
     }
      */
 
-    public String toString() {
-        return "id: " + angleBracketNull(id)
-          + ", url: " + angleBracketNull(url)
-          + ", username: " + angleBracketNull(username)
-          + ", password: <" + (password == null ? "NULL" : "PRESENT") + ">"
-          + ", ti: " + angleBracketNull(ti)
-          + ", driver: " + angleBracketNull(driver)
-          + ", truststore: " + angleBracketNull(truststore)
-          + ", libpath: " + angleBracketNull(libpath);
-    }
-
-    private static String angleBracketNull(final String s) {
-        return s == null ? "<NULL>" : s;
-    }
-
-
     /**
      * Creates a RCDataObject by looking up the given key in the
      * given authentication file.
@@ -112,8 +93,6 @@ public class RCData {
      * @throws Exception any exception
      */
     public RCData(File file, String dbKey) throws Exception {
-        // This set is so we can catch duplicates.
-        Set<String> idPatterns = new HashSet<String>();
 
         if (file == null) {
             throw new IllegalArgumentException("RC file name not specified");
@@ -126,9 +105,8 @@ public class RCData {
 
         // System.err.println("Using RC file '" + file + "'");
         StringTokenizer tokenizer = null;
-        boolean         loadingStanza   = false;
+        boolean         thisone   = false;
         String          s;
-        String[]        tokens;
         String          keyword, value;
         int             linenum = 0;
         BufferedReader  br      = new BufferedReader(new FileReader(file));
@@ -156,32 +134,48 @@ public class RCData {
                 keyword = tokenizer.nextToken();
                 value   = tokenizer.nextToken("").trim();
             } else {
+                try {
+                    br.close();
+                } catch (IOException e) {
+                    // Can only report on so many errors at one time
+                }
+
                 throw new Exception("Corrupt line " + linenum + " in '" + file
                                     + "':  " + s);
             }
 
-            if (keyword.equals("urlid")) {
-                tokens = value.split("\\s*,\\s*", -1);
-                for (int i = 0; i < tokens.length; i++) {
-                    if (idPatterns.contains(tokens[i]))
-                        throw new Exception("ID Pattern '" + tokens[i]
-                          + "' repeated at line " + linenum + " in '"
-                          + file + "'");
-                    idPatterns.add(tokens[i]);
-                    if (dbKey == null) {
-                        System.out.println(tokens[i]);
-                        continue;
-                    }
-                    loadingStanza =
-                      Pattern.compile(tokens[i]).matcher(dbKey).matches();
-                    if (id == null && loadingStanza) id = dbKey;
+            if (dbKey == null) {
+                if (keyword.equals("urlid")) {
+                    System.out.println(value);
                 }
 
                 continue;
             }
-            if (dbKey == null) continue;
 
-            if (loadingStanza) {
+            if (keyword.equals("urlid")) {
+                if (value.equals(dbKey)) {
+                    if (id == null) {
+                        id      = dbKey;
+                        thisone = true;
+                    } else {
+                        try {
+                            br.close();
+                        } catch (IOException e) {
+                            // Can only report on so many errors at one time
+                        }
+
+                        throw new Exception("Key '" + dbKey + " redefined at"
+                                            + " line " + linenum + " in '"
+                                            + file);
+                    }
+                } else {
+                    thisone = false;
+                }
+
+                continue;
+            }
+
+            if (thisone) {
                 if (keyword.equals("url")) {
                     url = value;
                 } else if (keyword.equals("username")) {
@@ -199,6 +193,12 @@ public class RCData {
                 } else if (keyword.equals("libpath")) {
                     libpath = value;
                 } else {
+                    try {
+                        br.close();
+                    } catch (IOException e) {
+                        // Can only report on so many errors at one time
+                    }
+
                     throw new Exception("Bad line " + linenum + " in '" + file
                                         + "':  " + s);
                 }
@@ -214,19 +214,19 @@ public class RCData {
         }
 
 
-        //System.err.println(idPatterns.size() + " patterns: " + idPatterns);
         if (dbKey == null) {
             return;
+        }
+
+        if (url == null) {
+            throw new Exception("url not set " + "for '" + dbKey
+                                + "' in file '" + file + "'");
         }
 
         if (libpath != null) {
             throw new IllegalArgumentException(
                 "Sorry, 'libpath' not supported yet");
         }
-
-        if (id == null)
-            throw new IllegalArgumentException(
-                "No match for '" + dbKey + "' in file '" + file + "'");
     }
 
     /**
@@ -288,12 +288,8 @@ public class RCData {
                 "Sorry, 'libpath' not supported yet");
         }
 
-        // We now require only id to be set by this constructor.
-        // This allows using programs to add settings to an RC object partially
-        // populated by RC file.
-        // Will not find out about missing 'url' until try to actually connect.
-        if (id == null) {
-            throw new Exception("id was not set");
+        if (id == null || url == null) {
+            throw new Exception("id or url was not set");
         }
     }
 
@@ -368,11 +364,6 @@ public class RCData {
         }
 
         String urlString = null;
-        if (url == null) {
-            throw new MalformedURLException(
-              "url string is required to establish a connection, but is null"
-              );
-        }
 
         try {
             urlString = expandSysPropVars(url);

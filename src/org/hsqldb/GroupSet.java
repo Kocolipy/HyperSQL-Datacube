@@ -1,5 +1,6 @@
 package org.hsqldb;
 
+import com.sun.rowset.internal.Row;
 import org.hsqldb.lib.HsqlArrayList;
 import org.hsqldb.lib.IntKeyHashMap;
 import org.hsqldb.lib.IntKeyIntValueHashMap;
@@ -43,8 +44,12 @@ public class GroupSet {
         iterator = sets.iterator();
         current = null;
     }
-    private int getColumnIndex(ExpressionColumn e){
-        int colIndex = columnIndexMap.get(e.getAlias().hashCode(), -1);
+    private int getColumnIndex(Expression e){
+        int aliasCode = e.getAlias().hashCode();
+        if (aliasCode == 0){
+            aliasCode = e.getSQL().hashCode();
+        }
+        int colIndex = columnIndexMap.get(aliasCode, -1);
         return colIndex;
     }
     private void addToBaseColumns(Expression e, Object[] exprColumns, int indexLimitVisible) {
@@ -69,8 +74,14 @@ public class GroupSet {
                 baseColumns.put(e.getAlias().hashCode(), e);
             }
         } else {
-            for (int i = 0; i < e.nodes.length; i++) {
-                addToBaseColumns(e.nodes[i], exprColumns, indexLimitVisible);
+            if (e.opType == OpTypes.ROW || e.opType == OpTypes.VALUELIST) {
+                for (int i = 0; i < e.nodes.length; i++) {
+                    addToBaseColumns(e.nodes[i], exprColumns, indexLimitVisible);
+                }
+            }
+            else {
+                baseColumns.put(e.getSQL().hashCode(), e);
+                return;
             }
         }
     }
@@ -90,6 +101,7 @@ public class GroupSet {
     }
     public void process(Expression[] e, int indexLimitVisible, int indexStartHaving){
         for (int i=indexLimitVisible; i<indexStartHaving;i++){
+            columnIndexMap.put(e[i].getSQL().hashCode(), e[i].resultTableColumnIndex);
             columnIndexMap.put(e[i].getColumnName().hashCode(), e[i].resultTableColumnIndex);
             columnIndexMap.put(e[i].getAlias().hashCode(), e[i].resultTableColumnIndex);
         }
@@ -98,6 +110,9 @@ public class GroupSet {
             int colIndex = columnIndexMap.get(e[i].getAlias().hashCode(), -1);
             if (colIndex == -1){
                 colIndex = columnIndexMap.get(e[i].getColumnName().hashCode(), -1);
+            }
+            if (colIndex == -1 && e[i].getClass() != ExpressionColumn.class){
+                colIndex = columnIndexMap.get(e[i].getSQL().hashCode(), -1);
             }
             if (colIndex != -1){
                 e[i].resultTableColumnIndex = colIndex;
@@ -123,7 +138,8 @@ public class GroupSet {
             return sets;
         }
         Expression[] exprs = e.nodes;
-        if (exprs.length == 0){
+
+        if (exprs.length == 0 || (e.opType != OpTypes.VALUELIST && e.opType != OpTypes.ROW)){
             exprs = new Expression[1];
             exprs[0] = e;
         }
@@ -138,7 +154,7 @@ public class GroupSet {
                 if (e.nodes.length == 0){
                     HsqlArrayList sets = new HsqlArrayList();
                     HsqlArrayList inner = new HsqlArrayList();
-                    inner.add(getColumnIndex((ExpressionColumn) e));
+                    inner.add(getColumnIndex(e));
                     sets.add(inner);
                     return sets;
                 }
@@ -175,12 +191,13 @@ public class GroupSet {
             return sets;
         }
         HsqlArrayList first;
-        if (expressions[0].nodes.length !=0){
+        if (expressions[0].nodes.length !=0 &&
+                (expressions[0].opType == OpTypes.VALUELIST || expressions[0].opType == OpTypes.ROW)){
             first = evaluate(expressions[0]);
         } else {
             first = new HsqlArrayList();
             HsqlArrayList tmp = new HsqlArrayList();
-            tmp.add(getColumnIndex((ExpressionColumn) expressions[0]));
+            tmp.add(getColumnIndex(expressions[0]));
             first.add(tmp);
         }
         HsqlArrayList results = powerSet(Arrays.copyOfRange(expressions, 1, expressions.length));
@@ -208,12 +225,14 @@ public class GroupSet {
             return sets;
         }
         HsqlArrayList first;
-        if (expressions[0].nodes.length !=0){
+
+        if (expressions[0].nodes.length !=0  &&
+                (expressions[0].opType == OpTypes.VALUELIST || expressions[0].opType == OpTypes.ROW)){
             first = evaluate(expressions[0]);
         } else {
             first = new HsqlArrayList();
             HsqlArrayList tmp = new HsqlArrayList();
-            tmp.add(getColumnIndex((ExpressionColumn) expressions[0]));
+            tmp.add(getColumnIndex(expressions[0]));
             first.add(tmp);
         }
         HsqlArrayList results = rollUp(Arrays.copyOfRange(expressions, 1, expressions.length));
@@ -237,13 +256,14 @@ public class GroupSet {
         if (expressions.length == 0){
             return sets;
         }
-        if (expressions[0].nodes.length !=0){
+        if (expressions[0].nodes.length !=0 &&
+                (expressions[0].opType == OpTypes.VALUELIST || expressions[0].opType == OpTypes.ROW)){
             sets = evaluate(expressions[0]);
         } else {
             sets = new HsqlArrayList();
             HsqlArrayList tmp = new HsqlArrayList();
             if (expressions[0].opType != OpTypes.NONE){
-                tmp.add(getColumnIndex((ExpressionColumn) expressions[0]));
+                tmp.add(getColumnIndex(expressions[0]));
             }
             sets.add(tmp);
         }
