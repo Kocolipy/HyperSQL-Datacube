@@ -202,19 +202,17 @@ public class GroupSet {
         }
         HsqlArrayList results = powerSet(Arrays.copyOfRange(expressions, 1, expressions.length));
         Iterator itFirst = first.iterator();
-        while (itFirst.hasNext()){
-            HsqlArrayList current = (HsqlArrayList) itFirst.next();
-            Iterator it = results.iterator();
-            while (it.hasNext()) {
-                HsqlArrayList newSet = new HsqlArrayList();
-                HsqlArrayList next = (HsqlArrayList) it.next();
-                newSet.addAll(current);
-                newSet.addAll(next);
-                if (!newSet.isEmpty()) {
-                    sets.add(newSet);
-                }
-            }
-        }
+		HsqlArrayList current = (HsqlArrayList) itFirst.next();
+		Iterator it = results.iterator();
+		while (it.hasNext()) {
+			HsqlArrayList newSet = new HsqlArrayList();
+			HsqlArrayList next = (HsqlArrayList) it.next();
+			newSet.addAll(current);
+			newSet.addAll(next);
+			if (!newSet.isEmpty()) {
+				sets.add(newSet);
+			}
+		}
         sets.addAll(results);
         return sets;
     }
@@ -237,16 +235,14 @@ public class GroupSet {
         }
         HsqlArrayList results = rollUp(Arrays.copyOfRange(expressions, 1, expressions.length));
         Iterator it = results.iterator();
+		Iterator itFirst = first.iterator();
+		HsqlArrayList next = (HsqlArrayList) itFirst.next();
         while (it.hasNext()){
             HsqlArrayList current = (HsqlArrayList) it.next();
-            Iterator itFirst = first.iterator();
-            while (itFirst.hasNext()){
-                HsqlArrayList next = (HsqlArrayList) itFirst.next();
-                HsqlArrayList newSet = new HsqlArrayList();
-                newSet.addAll(next);
-                newSet.addAll(current);
-                sets.add(newSet);
-            }
+			HsqlArrayList newSet = new HsqlArrayList();
+			newSet.addAll(next);
+			newSet.addAll(current);
+			sets.add(newSet);
         }
         sets.add(new HsqlArrayList());
         return sets;
